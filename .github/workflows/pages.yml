@@ -34,7 +34,14 @@ jobs:
 
       - name: Build
         run: npm run build
-
+        
+      - name: Check build output
+        run: |
+          echo "===== dist/client files ====="
+          find dist/client -maxdepth 3 -type f | sort
+          echo "===== index.html search ====="
+          find dist -name "index.html" -print
+          
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
