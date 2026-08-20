@@ -402,10 +402,11 @@ export default function Home() {
           {Array.from({ length: HOLE_COUNT }).map((_, index) => {
             const mole = activeMoles.find((item) => item.hole === index);
             const hitEffect = impact?.hole === index ? impact : null;
+            const visibleMole = mole ?? hitEffect;
             return (
               <button
                 ref={(element) => { holeRefs.current[index] = element; }}
-                className={`hole ${mole ? "active" : ""} ${mole?.golden ? "golden" : ""} ${hitEffect ? "whacked" : ""}`}
+                className={`hole ${visibleMole ? "active" : ""} ${visibleMole?.golden ? "golden" : ""} ${hitEffect ? "whacked" : ""}`}
                 key={index}
                 type="button"
                 onClick={() => hitMole(index)}
