@@ -1,85 +1,27 @@
-name: Deploy GitHub Pages
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
       - name: Prepare GitHub Pages
         run: |
-          echo "===== 找 index.html ====="
-          find dist -name "index.html" -print
+          echo "===== Build output ====="
+          find dist/client -maxdepth 4 -type f | sort | head -200
 
           rm -rf site
-          cp -a dist/client site
+          mkdir -p site
 
-          if [ -f site/index.html ]; then
-            echo "✅ index.html 已經在正確位置"
+          # 先複製整個靜態網站
+          cp -a dist/client/. site/
 
-          elif [ -f site/mole-rush/index.html ]; then
-            echo "✅ 發現 index.html 在 mole-rush 子資料夾"
-            echo "正在複製到 Pages 根目錄..."
-            cp site/mole-rush/index.html site/index.html
-
-          else
-            echo "❌ 找不到首頁 index.html"
-            echo "===== dist/client 內容 ====="
-            find dist/client -maxdepth 4 -type f | sort
-            exit 1
+          # Vinext 使用 assetPrefix=/mole-rush 時，
+          # 會把資源實體檔案放在 mole-rush/ 子目錄。
+          # GitHub Project Pages 本身已經掛在 /mole-rush/，
+          # 所以這裡把它攤平到網站根目錄。
+          if [ -d site/mole-rush ]; then
+            echo "===== Flatten mole-rush asset directory ====="
+            cp -a site/mole-rush/. site/
+            rm -rf site/mole-rush
           fi
 
           touch site/.nojekyll
 
-          echo "===== 最終 Pages 根目錄 ====="
-          find site -maxdepth 2 -type f | sort | head -100
+          echo "===== Final site ====="
+          find site -maxdepth 5 -type f | sort | head -200
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ./site
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          test -f site/index.html
