@@ -34,21 +34,42 @@ jobs:
 
       - name: Build
         run: npm run build
-        
-      - name: Check build output
+
+      - name: Prepare GitHub Pages
         run: |
-          echo "===== dist/client files ====="
-          find dist/client -maxdepth 3 -type f | sort
-          echo "===== index.html search ====="
+          echo "===== 找 index.html ====="
           find dist -name "index.html" -print
-          
+
+          rm -rf site
+          cp -a dist/client site
+
+          if [ -f site/index.html ]; then
+            echo "✅ index.html 已經在正確位置"
+
+          elif [ -f site/mole-rush/index.html ]; then
+            echo "✅ 發現 index.html 在 mole-rush 子資料夾"
+            echo "正在複製到 Pages 根目錄..."
+            cp site/mole-rush/index.html site/index.html
+
+          else
+            echo "❌ 找不到首頁 index.html"
+            echo "===== dist/client 內容 ====="
+            find dist/client -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          touch site/.nojekyll
+
+          echo "===== 最終 Pages 根目錄 ====="
+          find site -maxdepth 2 -type f | sort | head -100
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./dist/client
+          path: ./site
 
   deploy:
     environment:
