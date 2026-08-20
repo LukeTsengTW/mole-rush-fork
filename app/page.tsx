@@ -101,6 +101,19 @@ export default function Home() {
     hammer.style.top = `${y}px`;
   }, []);
 
+  const handleFieldPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (phase !== "playing" || event.pointerType === "mouse" || event.pointerType === "pen") return;
+    if ((event.target as Element).closest(".mobile-hammer")) return;
+    const field = fieldRef.current;
+    if (!field) return;
+
+    const rect = field.getBoundingClientRect();
+    const x = Math.min(Math.max(event.clientX - rect.left, 40), Math.max(40, rect.width - 40));
+    const y = Math.min(Math.max(event.clientY - rect.top, 48), Math.max(48, rect.height - 22));
+    positionMobileHammer(x, y);
+    triggerHammerSwing(mobileHammerRef.current);
+  };
+
   const finishRound = useCallback(() => {
     clearTimers();
     activeMolesRef.current = [];
@@ -398,6 +411,7 @@ export default function Home() {
           ref={fieldRef}
           className={`field ${phase === "playing" ? "is-playing" : ""}`}
           aria-label="九個地鼠洞"
+          onPointerDown={handleFieldPointerDown}
         >
           {Array.from({ length: HOLE_COUNT }).map((_, index) => {
             const mole = activeMoles.find((item) => item.hole === index);
