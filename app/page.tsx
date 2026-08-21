@@ -101,16 +101,20 @@ export default function Home() {
     hammer.style.top = `${y}px`;
   }, []);
 
-  const handleFieldPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (phase !== "playing" || event.pointerType === "mouse" || event.pointerType === "pen") return;
-    if ((event.target as Element).closest(".mobile-hammer")) return;
+  const positionMobileHammerAtClientPoint = useCallback((clientX: number, clientY: number) => {
     const field = fieldRef.current;
     if (!field) return;
-
     const rect = field.getBoundingClientRect();
-    const x = Math.min(Math.max(event.clientX - rect.left, 40), Math.max(40, rect.width - 40));
-    const y = Math.min(Math.max(event.clientY - rect.top, 48), Math.max(48, rect.height - 22));
+    const x = Math.min(Math.max(clientX - rect.left, 40), Math.max(40, rect.width - 40));
+    const y = Math.min(Math.max(clientY - rect.top, 48), Math.max(48, rect.height - 22));
     positionMobileHammer(x, y);
+  }, [positionMobileHammer]);
+
+  const handleFieldPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (phase !== "playing" || event.pointerType === "mouse" || event.pointerType === "pen") return;
+    const target = event.target as Element;
+    if (target.closest(".mobile-hammer") || target.closest(".hole")) return;
+    positionMobileHammerAtClientPoint(event.clientX, event.clientY);
     triggerHammerSwing(mobileHammerRef.current);
   };
 
@@ -249,6 +253,17 @@ export default function Home() {
 
     if (navigator.vibrate) navigator.vibrate(mole.golden ? [25, 30, 25] : 20);
     return true;
+  };
+
+  const handleHolePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, hole: number) => {
+    if (phase !== "playing") return;
+    if (event.pointerType === "touch") {
+      positionMobileHammerAtClientPoint(event.clientX, event.clientY);
+      triggerHammerSwing(mobileHammerRef.current);
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    hitMole(hole);
   };
 
   const strikeAtClientPoint = (clientX: number, clientY: number) => {
@@ -423,7 +438,8 @@ export default function Home() {
                 className={`hole ${visibleMole ? "active" : ""} ${visibleMole?.golden ? "golden" : ""} ${hitEffect ? "whacked" : ""}`}
                 key={index}
                 type="button"
-                onClick={() => hitMole(index)}
+                onPointerDown={(event) => handleHolePointerDown(event, index)}
+                onClick={(event) => { if (event.detail === 0) hitMole(index); }}
                 aria-label={mole ? `${mole.golden ? "金色" : "一般"}地鼠，快打！` : `第 ${index + 1} 個空洞`}
                 disabled={phase !== "playing"}
               >
